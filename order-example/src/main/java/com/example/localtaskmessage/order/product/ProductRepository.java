@@ -62,4 +62,29 @@ public class ProductRepository {
         );
     }
 
+    public List<Long> lockActiveProductIds() {
+        return jdbcTemplate.queryForList("""
+                SELECT id
+                FROM order_product_library
+                WHERE del_flag = 0
+                ORDER BY id
+                FOR UPDATE
+                """, Long.class);
+    }
+
+    public void insertActiveRelation(
+            long parentProductId,
+            long childProductId,
+            int quantity,
+            int sortOrder
+    ) {
+        jdbcTemplate.update("""
+                INSERT INTO order_product_relation (
+                    parent_product_id, child_product_id,
+                    quantity, sort_order, del_flag
+                )
+                VALUES (?, ?, ?, ?, 0)
+                """, parentProductId, childProductId, quantity, sortOrder);
+    }
+
 }
