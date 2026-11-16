@@ -1,5 +1,8 @@
-package com.example.localtaskmessage.order.product;
+package com.example.localtaskmessage.order.product.application;
 
+import com.example.localtaskmessage.order.product.domain.model.Product;
+import com.example.localtaskmessage.order.product.repository.ProductRepository;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -9,16 +12,13 @@ import java.util.List;
 public class ProductRelationService {
 
     private final ProductRepository productRepository;
-    private final ProductTreeService treeService;
-    private final ProductProcessPlanService planService;
+    private final ProductPlanService planService;
 
     public ProductRelationService(
             ProductRepository productRepository,
-            ProductTreeService treeService,
-            ProductProcessPlanService planService
+            ProductPlanService planService
     ) {
         this.productRepository = productRepository;
-        this.treeService = treeService;
         this.planService = planService;
     }
 
@@ -50,7 +50,6 @@ public class ProductRelationService {
                         "父商品不存在或已删除，商品ID=" + parentProductId
                 ));
 
-
         if (!parent.type().isComposite()) {
             throw new IllegalArgumentException("父商品必须是同款或套装");
         }
@@ -61,15 +60,17 @@ public class ProductRelationService {
             );
         }
 
-        productRepository.insertActiveRelation(
-                parentProductId, childProductId, quantity, sortOrder
-        );
+        try {
+            productRepository.insertActiveRelation(
+                    parentProductId, childProductId, quantity, sortOrder
+            );
+        } catch (DuplicateKeyException duplicate) {
+            throw new ProductRelationConflictException(duplicate);
+        }
 
         // 每个有效商品都可能作为下单入口，校验它能否生成合法计划。
         for (long rootProductId : activeProductIds) {
-            ProductTreeNode tree = treeService.buildTree(rootProductId);
-            planService.buildPlan(tree);
+            planService.createPlan(rootProductId);
         }
     }
-
 }

@@ -1,5 +1,8 @@
-package com.example.localtaskmessage.order.product;
+package com.example.localtaskmessage.order.product.repository;
 
+import com.example.localtaskmessage.order.product.domain.model.Product;
+import com.example.localtaskmessage.order.product.domain.model.ProductRelation;
+import com.example.localtaskmessage.order.product.domain.model.ProductType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 

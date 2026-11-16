@@ -1,7 +1,9 @@
 package com.example.localtaskmessage.order.service;
 
 import com.example.localtaskmessage.order.model.OrderCreatedMessage;
-import com.example.localtaskmessage.order.product.ProductProcessPlan;
+import com.example.localtaskmessage.order.model.OrderProductProcessRecord;
+import com.example.localtaskmessage.order.product.domain.model.ProductProcessPlan;
+import com.example.localtaskmessage.order.repository.OrderProductProcessRecordRepository;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -16,9 +18,14 @@ public class OrderCreatedConsumeService {
     public static final String GROUP_NAME = "order_created_consumer";
 
     private final JdbcTemplate jdbcTemplate;
+    private final OrderProductProcessRecordRepository productProcessRecordRepository;
 
-    public OrderCreatedConsumeService(JdbcTemplate jdbcTemplate) {
+    public OrderCreatedConsumeService(
+            JdbcTemplate jdbcTemplate,
+            OrderProductProcessRecordRepository productProcessRecordRepository
+    ) {
         this.jdbcTemplate = jdbcTemplate;
+        this.productProcessRecordRepository = productProcessRecordRepository;
     }
 
     /**
@@ -65,19 +72,14 @@ public class OrderCreatedConsumeService {
         int processOrder = 1;
 
         for (ProductProcessPlan.Item item : plan.items()) {
-            jdbcTemplate.update("""
-                    INSERT INTO order_product_process_record (
-                        task_id, order_no, process_order, product_id, sku, product_type
-                    )
-                    VALUES (?, ?, ?, ?, ?, ?)
-                    """,
+            productProcessRecordRepository.insert(new OrderProductProcessRecord(
                     event.taskId(),
                     event.orderNo(),
                     processOrder,
                     item.productId(),
                     item.sku(),
-                    item.productType().code()
-            );
+                    item.productType()
+            ));
 
             processOrder++;
         }

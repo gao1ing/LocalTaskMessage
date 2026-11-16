@@ -1,37 +1,40 @@
-package com.example.localtaskmessage.order.product;
+package com.example.localtaskmessage.order.product.web;
 
+import com.example.localtaskmessage.order.product.application.ProductPlanService;
+import com.example.localtaskmessage.order.product.application.ProductPlanService.TreePlanPreview;
+import com.example.localtaskmessage.order.product.application.ProductRelationConflictException;
+import com.example.localtaskmessage.order.product.application.ProductRelationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.dao.DuplicateKeyException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/products")
 public class ProductController {
 
-    private final ProductTreeService treeService;
-    private final ProductProcessPlanService planService;
+    private final ProductPlanService planService;
     private final ProductRelationService relationService;
 
     public ProductController(
-            ProductTreeService treeService,
-            ProductProcessPlanService planService,
+            ProductPlanService planService,
             ProductRelationService relationService
     ) {
-        this.treeService = treeService;
         this.planService = planService;
         this.relationService = relationService;
     }
-
 
     @GetMapping("/{rootProductId}/tree-plan")
     public TreePlanPreview preview(
             @PathVariable("rootProductId") long rootProductId
     ) {
-        ProductTreeNode tree = treeService.buildTree(rootProductId);
-        ProductProcessPlan plan = planService.buildPlan(tree);
-
-        return new TreePlanPreview(tree, plan);
+        return planService.preview(rootProductId);
     }
 
     @PostMapping("/{parentProductId}/children/{childProductId}")
@@ -47,11 +50,11 @@ public class ProductController {
         );
     }
 
-    @ExceptionHandler(DuplicateKeyException.class)
-    public ProblemDetail duplicateRelation() {
+    @ExceptionHandler(ProductRelationConflictException.class)
+    public ProblemDetail duplicateRelation(ProductRelationConflictException exception) {
         return ProblemDetail.forStatusAndDetail(
                 HttpStatus.CONFLICT,
-                "这对父子商品已有有效关联"
+                exception.getMessage()
         );
     }
 
@@ -61,11 +64,5 @@ public class ProductController {
                 HttpStatus.BAD_REQUEST,
                 exception.getMessage()
         );
-    }
-
-    public record TreePlanPreview(
-            ProductTreeNode tree,
-            ProductProcessPlan plan
-    ) {
     }
 }

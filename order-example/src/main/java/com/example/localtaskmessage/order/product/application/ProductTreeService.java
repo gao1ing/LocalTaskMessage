@@ -1,5 +1,9 @@
-package com.example.localtaskmessage.order.product;
+package com.example.localtaskmessage.order.product.application;
 
+import com.example.localtaskmessage.order.product.domain.model.Product;
+import com.example.localtaskmessage.order.product.domain.model.ProductRelation;
+import com.example.localtaskmessage.order.product.domain.model.ProductTreeNode;
+import com.example.localtaskmessage.order.product.repository.ProductRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

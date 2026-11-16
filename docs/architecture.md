@@ -14,10 +14,17 @@
 | Starter taskmessage.transport | 通用发送接口、RocketMQ 适配 |
 | Starter taskmessage.autoconfigure | 条件装配入口 |
 | 示例 order | Topic、正文、消费组、下单与消费业务 |
+| 示例 order.product.web | 商品树与计划预览、父子关联接口 |
+| 示例 order.product.application | 读取商品树、生成处理计划、校验并保存关联 |
+| 示例 order.product.domain | 商品、关联和计划模型，后序遍历与去重规则 |
+| 示例 order.product.repository | 商品和关联的 JDBC 读写 |
+| 示例 order.repository | 订单商品处理记录的 JDBC 读写 |
 | 示例 taskmessage.admin | 查询、游标分页、人工补发和审计 API |
 | 示例 support | 启动检查、ping |
 
 管理 API 留在示例，Starter 不引入 Spring MVC 或 HTTP 异常。MySQL 驱动由示例提供。
+
+预览与下单通过 ProductPlanService 生成计划。写入关联由 ProductRelationService 管理事务，插入后复用同一计划入口校验所有有效商品树。
 
 ## 自动装配与事务
 
@@ -57,6 +64,6 @@ retry_ready_at 为生成列：PENDING 取 next_retry_time，PROCESSING 取 locke
 | Broker 确认但 SENT 回写确实失败 | 保留 PROCESSING、原计数和租约；过期补发，可能重复投递 |
 | 租约失效 | 当前实例不回写其他实例持有的任务 |
 
-发送失败 SQL 将 retry_count 递增放在 SET 最后，避免 MySQL 顺序赋值改变前面失败上限和退避计算所读的计数。消费在一个事务中先插入 (consumer_group, task_id) 唯一记录，再更新统计；重复命中唯一键时成功返回且不重复统计。
+发送失败 SQL 将 retry_count 递增放在 SET 最后，避免 MySQL 顺序赋值改变前面失败上限和退避计算所读的计数。首次消费在同一个事务中登记 (consumer_group, task_id)，有商品计划时按顺序写入处理记录，最后更新统计。重复命中消费唯一键时直接确认。
 
 人工补发先 SELECT FOR UPDATE 锁定 FAILED 任务，状态重置与审计插入同事务提交。登记失败、重复消费和审计失败都应按相关表字段及任务 ID 定位，而不是仅凭 HTTP 状态判断 MQ 投递结果。

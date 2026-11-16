@@ -1,6 +1,8 @@
-package com.example.localtaskmessage.order.product;
+package com.example.localtaskmessage.order.product.domain.service;
 
-import org.springframework.stereotype.Service;
+import com.example.localtaskmessage.order.product.domain.model.Product;
+import com.example.localtaskmessage.order.product.domain.model.ProductProcessPlan;
+import com.example.localtaskmessage.order.product.domain.model.ProductTreeNode;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -9,8 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@Service
-public class ProductProcessPlanService {
+public final class ProductProcessPlanner {
 
     public ProductProcessPlan buildPlan(ProductTreeNode tree) {
         Product rootProduct = tree.product();

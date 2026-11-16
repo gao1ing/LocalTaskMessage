@@ -1,6 +1,6 @@
 package com.example.localtaskmessage.order.model;
 
-import com.example.localtaskmessage.order.product.ProductProcessPlan;
+import com.example.localtaskmessage.order.product.domain.model.ProductProcessPlan;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

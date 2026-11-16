@@ -1,4 +1,4 @@
-package com.example.localtaskmessage.order.product;
+package com.example.localtaskmessage.order.product.domain.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;

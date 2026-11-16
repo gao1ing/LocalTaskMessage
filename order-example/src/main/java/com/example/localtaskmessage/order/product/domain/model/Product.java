@@ -1,4 +1,4 @@
-package com.example.localtaskmessage.order.product;
+package com.example.localtaskmessage.order.product.domain.model;
 
 public record Product(
         long id,

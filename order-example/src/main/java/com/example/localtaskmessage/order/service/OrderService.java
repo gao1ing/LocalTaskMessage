@@ -2,10 +2,9 @@ package com.example.localtaskmessage.order.service;
 
 import com.example.localtaskmessage.order.model.CreateOrderRequest;
 import com.example.localtaskmessage.order.model.OrderCreatedMessage;
-import com.example.localtaskmessage.order.product.ProductProcessPlan;
-import com.example.localtaskmessage.order.product.ProductProcessPlanService;
-import com.example.localtaskmessage.order.product.ProductTreeNode;
-import com.example.localtaskmessage.order.product.ProductTreeService;
+import com.example.localtaskmessage.order.model.OrderProductProcessRecord;
+import com.example.localtaskmessage.order.product.application.ProductPlanService;
+import com.example.localtaskmessage.order.repository.OrderProductProcessRecordRepository;
 import com.example.localtaskmessage.taskmessage.api.LocalTaskMessage;
 import com.example.localtaskmessage.taskmessage.api.TaskMessageCommand;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -14,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -22,19 +22,19 @@ public class OrderService {
 
     private final JdbcTemplate jdbcTemplate;
     private final JsonMapper jsonMapper;
-    private final ProductTreeService productTreeService;
-    private final ProductProcessPlanService productProcessPlanService;
+    private final ProductPlanService productPlanService;
+    private final OrderProductProcessRecordRepository productProcessRecordRepository;
 
     public OrderService(
             JdbcTemplate jdbcTemplate,
             JsonMapper jsonMapper,
-            ProductTreeService productTreeService,
-            ProductProcessPlanService productProcessPlanService
+            ProductPlanService productPlanService,
+            OrderProductProcessRecordRepository productProcessRecordRepository
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.jsonMapper = jsonMapper;
-        this.productTreeService = productTreeService;
-        this.productProcessPlanService = productProcessPlanService;
+        this.productPlanService = productPlanService;
+        this.productProcessRecordRepository = productProcessRecordRepository;
     }
 
     @Transactional
@@ -50,9 +50,7 @@ public class OrderService {
 
         Long rootProductId = request.rootProductId();
         if (rootProductId != null) {
-            ProductTreeNode tree = productTreeService.buildTree(rootProductId);
-            ProductProcessPlan plan = productProcessPlanService.buildPlan(tree);
-            messageBody.put("productPlan", plan);
+            messageBody.put("productPlan", productPlanService.createPlan(rootProductId));
         }
 
         String payload = jsonMapper.writeValueAsString(messageBody);
@@ -75,5 +73,9 @@ public class OrderService {
                 OrderCreatedMessage.TOPIC,
                 payload
         );
+    }
+
+    public List<OrderProductProcessRecord> findProductProcessRecords(String orderNo) {
+        return productProcessRecordRepository.findByOrderNo(orderNo);
     }
 }

@@ -1,4 +1,4 @@
-package com.example.localtaskmessage.order.product;
+package com.example.localtaskmessage.order.product.domain.model;
 
 import java.util.List;
 import java.util.Objects;

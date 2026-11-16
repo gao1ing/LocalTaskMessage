@@ -1,9 +1,8 @@
 package com.example.localtaskmessage.order.web;
 
 import com.example.localtaskmessage.order.model.CreateOrderRequest;
-import com.example.localtaskmessage.order.product.ProductProcessRecordRepository;
+import com.example.localtaskmessage.order.model.OrderProductProcessRecord;
 import com.example.localtaskmessage.order.service.OrderService;
-import com.example.localtaskmessage.order.product.ProductProcessRecordRepository.ProductProcessRecord;
 
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -21,14 +20,9 @@ import java.util.Map;
 public class OrderController {
 
     private final OrderService orderService;
-    private final ProductProcessRecordRepository productProcessRecordRepository;
 
-    public OrderController(
-            OrderService orderService,
-            ProductProcessRecordRepository productProcessRecordRepository
-    ) {
+    public OrderController(OrderService orderService) {
         this.orderService = orderService;
-        this.productProcessRecordRepository = productProcessRecordRepository;
     }
 
     /**
@@ -45,10 +39,10 @@ public class OrderController {
     }
 
     @GetMapping("/{orderNo}/product-process-records")
-    public List<ProductProcessRecord> productProcessRecords(
+    public List<OrderProductProcessRecord> productProcessRecords(
             @PathVariable("orderNo") String orderNo
     ) {
-        return productProcessRecordRepository.findByOrderNo(orderNo);
+        return orderService.findProductProcessRecords(orderNo);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
