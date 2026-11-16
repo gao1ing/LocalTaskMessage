@@ -5,6 +5,7 @@ import com.example.localtaskmessage.order.service.OrderService;
 
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -33,6 +34,14 @@ public class OrderController {
 
         return Map.of("orderNo", request.orderNo());
 
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ProblemDetail invalidOrderProduct(IllegalArgumentException exception) {
+        return ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST,
+                exception.getMessage()
+        );
     }
 
 }
