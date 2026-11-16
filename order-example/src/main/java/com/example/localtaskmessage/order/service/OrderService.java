@@ -2,53 +2,60 @@ package com.example.localtaskmessage.order.service;
 
 import com.example.localtaskmessage.order.model.CreateOrderRequest;
 import com.example.localtaskmessage.order.model.OrderCreatedMessage;
+import com.example.localtaskmessage.order.product.ProductProcessPlan;
+import com.example.localtaskmessage.order.product.ProductProcessPlanService;
+import com.example.localtaskmessage.order.product.ProductTreeNode;
+import com.example.localtaskmessage.order.product.ProductTreeService;
 import com.example.localtaskmessage.taskmessage.api.LocalTaskMessage;
 import com.example.localtaskmessage.taskmessage.api.TaskMessageCommand;
-
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * 保存订单，并把要发出的订单创建消息交给消息切面。
- */
 @Service
 public class OrderService {
 
     private final JdbcTemplate jdbcTemplate;
     private final JsonMapper jsonMapper;
+    private final ProductTreeService productTreeService;
+    private final ProductProcessPlanService productProcessPlanService;
 
     public OrderService(
             JdbcTemplate jdbcTemplate,
-            JsonMapper jsonMapper
+            JsonMapper jsonMapper,
+            ProductTreeService productTreeService,
+            ProductProcessPlanService productProcessPlanService
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.jsonMapper = jsonMapper;
+        this.productTreeService = productTreeService;
+        this.productProcessPlanService = productProcessPlanService;
     }
 
-    /**
-     * 在一个事务里完成下单和消息登记，提交成功后再发送 MQ。
-     */
     @Transactional
     @LocalTaskMessage
-    public TaskMessageCommand createOrder(
-            CreateOrderRequest request
-    ) {
-        // taskId 同时写进任务表和消息正文，重发时复用，消费端据此去重。
+    public TaskMessageCommand createOrder(CreateOrderRequest request) {
         String taskId = UUID.randomUUID().toString();
 
-        String payload = jsonMapper.writeValueAsString(
-                Map.of(
-                        "taskId", taskId,
-                        "orderNo", request.orderNo(),
-                        "userId", request.userId(),
-                        "payAmount", request.payAmount()
-                )
-        );
+        Map<String, Object> messageBody = new LinkedHashMap<>();
+        messageBody.put("taskId", taskId);
+        messageBody.put("orderNo", request.orderNo());
+        messageBody.put("userId", request.userId());
+        messageBody.put("payAmount", request.payAmount());
+
+        Long rootProductId = request.rootProductId();
+        if (rootProductId != null) {
+            ProductTreeNode tree = productTreeService.buildTree(rootProductId);
+            ProductProcessPlan plan = productProcessPlanService.buildPlan(tree);
+            messageBody.put("productPlan", plan);
+        }
+
+        String payload = jsonMapper.writeValueAsString(messageBody);
 
         jdbcTemplate.update("""
                 INSERT INTO biz_order (
@@ -61,7 +68,7 @@ public class OrderService {
                 request.payAmount()
         );
 
-        // 方法返回后，切面会在事务提交前登记这条消息；登记失败，订单也会回滚。
+        // 切面在外层事务提交前登记这一条消息。
         return new TaskMessageCommand(
                 taskId,
                 request.orderNo(),
